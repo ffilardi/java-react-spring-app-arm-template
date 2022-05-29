@@ -5,8 +5,8 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     env:
-      ResourceGroupName: ${{ secrets.AZURE_RG_NAME }}
-      ResourceGroupLocation: ${{ secrets.AZURE_RG_LOCATION }}
+      ResourceGroupName: DevOpsJavaApp-RG
+      ResourceGroupLocation: "australiaeast"
     steps:
     - uses: actions/checkout@master
     - uses: azure/login@v1
@@ -22,4 +22,4 @@ jobs:
       with:
         resourceGroupName: ${{ env.ResourceGroupName }}
         template: ./azuredeploy.json
-        parameters: ./azuredeploy.parameters.json location=${{ secrets.AZURE_RG_LOCATION }} app_dockerRegistryUsername=${{ secrets.GIT_USERNAME }} app_dockerRegistryPassword=${{ secrets.GIT_PAT }}
+        parameters: ./azuredeploy.parameters.json location=${{ env.ResourceGroupLocation }} app_dockerRegistryUsername=${{ secrets.GIT_USERNAME }} app_dockerRegistryPassword=${{ secrets.GIT_PAT }}
