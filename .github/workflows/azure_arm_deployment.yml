@@ -1,0 +1,25 @@
+on: [push]
+name: Azure ARM Deployment
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    env:
+      ResourceGroupName: ${{ secrets.AZURE_RG_NAME }}
+      ResourceGroupLocation: ${{ secrets.AZURE_RG_LOCATION }}
+    steps:
+    - uses: actions/checkout@master
+    - uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+    - uses: Azure/CLI@v1
+      with:
+        inlineScript: |
+          #!/bin/bash
+          az group create --name ${{ env.ResourceGroupName }} --location ${{ env.ResourceGroupLocation }}
+          echo "Azure resource group created"
+    - uses: azure/arm-deploy@v1
+      with:
+        resourceGroupName: ${{ env.ResourceGroupName }}
+        template: ./azuredeploy.json
+        parameters: ./azuredeploy.parameters.json location=${{ secrets.AZURE_RG_LOCATION }} app_dockerRegistryUsername=${{ secrets.GITHUB_USERNAME }} app_dockerRegistryPassword=${{ secrets.GITHUB_PAT }}
