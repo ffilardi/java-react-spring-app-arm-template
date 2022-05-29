@@ -1,0 +1,81 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "location": {
+            "value": "Australia East"
+        },
+        "tags": {
+            "value": { "Group": "DevOps-Assignment" }
+        },
+        "sp_name": {
+            "value": "DevOpsJavaApp-Plan"
+        },
+        "sp_sku": {
+            "value": "PremiumV2"
+        },
+        "sp_skuCode": {
+            "value": "P1v2"
+        },
+        "log_name": {
+            "value": "DevOpsJavaApp-Log"
+        },
+        "log_sku": {
+            "value": "pergb2018"
+        },
+        "ai_name": {
+            "value": "DevOpsJavaApp"
+        },
+        "ai_type": {
+            "value": "web"
+        },
+        "app_name": {
+            "value": "DevOpsJavaApp"
+        },
+        "app_alwaysOn": {
+            "value": true
+        },
+        "app_ftpsState": {
+            "value": "AllAllowed"
+        },
+        "app_linuxFxVersion": {
+            "value": "COMPOSE|"
+        },
+        "app_dockerRegistryUrl": {
+            "value": "https://ghcr.io"
+        },
+        "app_dockerRegistryUsername": {
+            "value": ""
+        },
+        "app_dockerRegistryPassword": {
+            "value": ""
+        },
+        "app_dockerRegistryStartupCommand": {
+            "value": ""
+        },
+        "as_minimumCapacity": {
+            "value": 1
+        },
+        "as_maximumCapacity": {
+            "value": 20
+        },
+        "as_defaultCapacity": {
+            "value": 1
+        },
+        "as_metricThresholdToScaleOut": {
+            "value": 60
+        },
+        "as_metricThresholdToScaleIn": {
+            "value": 30
+        },
+        "as_changeCountScaleOut": {
+            "value": 1
+        },
+        "as_changeCountScaleIn": {
+            "value": 1
+        },
+        "as_autoscaleEnabled": {
+            "value": true
+        }
+    }
+}

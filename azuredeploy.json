@@ -1,0 +1,343 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]",
+            "metadata": { "description": "Resources location. Defaults to resource group location." }
+        },
+        "tags": {
+            "type": "object",
+            "metadata": { "description": "Resources tags." }
+        },
+        "sp_name": {
+            "type": "string",
+            "metadata": { "description": "Web application service plan resource name." }
+        },
+        "sp_sku": {
+            "type": "string",
+            "metadata": { "description": "Web application service plan SKU." }
+        },
+        "sp_skuCode": {
+            "type": "string",
+            "metadata": { "description": "Web application service plan SKU code." }
+        },
+        "log_name": {
+            "type": "string",
+            "metadata": { "description": "Log analytics workspace resource name." }
+        },
+        "log_sku": {
+            "type": "string",
+            "metadata": { "description": "Log analytics workspace SKU." }
+        },
+        "ai_name": {
+            "type": "String",
+            "metadata": { "description": "Application insights resource name." }
+        },
+        "ai_type": {
+            "type": "String",
+            "metadata": { "description": "Application insights type." }
+        },
+        "app_name": {
+            "type": "string",
+            "metadata": { "description": "Web application service resource name." }
+        },
+        "app_alwaysOn": {
+            "type": "bool",
+            "metadata": { "description": "Web application service always on setting." }
+        },
+        "app_ftpsState": {
+            "type": "string",
+            "metadata": { "description": "Web application serviceFTP state." }
+        },
+        "app_linuxFxVersion": {
+            "type": "string",
+            "metadata": { "description": "Linux application framework and version." }
+        },
+        "app_dockerRegistryUrl": {
+            "type": "string",
+            "metadata": { "description": "Docker registry URL address." }
+        },
+        "app_dockerRegistryUsername": {
+            "type": "string",
+            "metadata": { "description": "Docker registry user name." }
+        },
+        "app_dockerRegistryPassword": {
+            "type": "securestring",
+            "metadata": { "description": "Docker registry password (PAT)." }
+        },
+        "app_dockerRegistryStartupCommand": {
+            "type": "string",
+            "metadata": { "description": "Docker container startup command." }
+        },
+        "as_minimumCapacity": {
+            "type": "int",
+            "metadata": { "description": "The minimum capacity. Autoscale engine will ensure the instance count is at least this value." }
+        },
+        "as_maximumCapacity": {
+            "type": "int",
+            "metadata": { "description": "The maximum capacity. Autoscale engine will ensure the instance count is not greater than this value." }
+        },
+        "as_defaultCapacity": {
+            "type": "int",
+            "metadata": { "description": "The default capacity. Autoscale engine will preventively set the instance count to be this value if it can not find any metric data." }
+        },
+        "as_metricThresholdToScaleOut": {
+            "type": "int",
+            "metadata": { "description": "The metric upper threshold. If the metric value is above this threshold then autoscale engine will initiate scale out action." }
+        },
+        "as_metricThresholdToScaleIn": {
+            "type": "int",
+            "metadata": { "description": "The metric lower threshold. If the metric value is below this threshold then autoscale engine will initiate scale in action." }
+        },
+        "as_changeCountScaleOut": {
+            "type": "int",
+            "metadata": { "description": "The unit to increase the instance count when autoscale engine is initiating scale out action." }
+        },
+        "as_changeCountScaleIn": {
+            "type": "int",
+            "metadata": { "description": "The unit to decrease the instance count when autoscale engine is initiating scale in action." }
+        },
+        "as_autoscaleEnabled": {
+            "type": "bool",
+            "metadata": { "description": "A boolean to indicate whether the autoscale policy is enabled or disabled." }
+        }
+    },
+    "variables": {
+        "servicePlanId": "[resourceId('Microsoft.Web/serverFarms', parameters('sp_name'))]",
+        "logAnalyticsWorkspaceId": "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('log_name'))]",
+        "appInsightsId": "[resourceId('microsoft.insights/components', parameters('ai_name'))]",
+        "webAppId": "[resourceId('Microsoft.Web/sites', parameters('app_name'))]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Web/serverfarms",
+            "apiVersion": "2020-12-01",
+            "name": "[parameters('sp_name')]",
+            "location": "[parameters('location')]",
+            "kind": "linux",
+            "tags": "[parameters('tags')]",
+            "properties": {
+                "reserved": true,
+                "zoneRedundant": false
+            },
+            "sku": {
+                "Tier": "[parameters('sp_sku')]",
+                "Name": "[parameters('sp_skuCode')]"
+            }
+        },
+        {
+            "type": "Microsoft.Insights/autoscalesettings",
+            "apiVersion": "2021-05-01-preview",
+            "name": "[concat(parameters('sp_name'), '-AutoScale-Settings')]",
+            "location": "[parameters('location')]",
+            "tags": "[parameters('tags')]",
+            "dependsOn": [
+                "[variables('servicePlanId')]"
+            ],
+            "properties": {
+                "targetResourceUri": "[variables('servicePlanId')]",
+                "enabled": "[parameters('as_autoscaleEnabled')]",
+                "profiles": [
+                    {
+                        "name": "DefaultAutoscaleProfile",
+                        "capacity": {
+                            "minimum": "[parameters('as_minimumCapacity')]",
+                            "maximum": "[parameters('as_maximumCapacity')]",
+                            "default": "[parameters('as_defaultCapacity')]"
+                        },
+                        "rules": [
+                            {
+                                "metricTrigger": {
+                                    "metricName": "CpuPercentage",
+                                    "metricResourceUri": "[variables('servicePlanId')]",
+                                    "timeGrain": "PT1M",
+                                    "statistic": "Average",
+                                    "timeWindow": "PT5M",
+                                    "timeAggregation": "Average",
+                                    "operator": "GreaterThan",
+                                    "threshold": "[parameters('as_metricThresholdToScaleOut')]"
+                                },
+                                    "scaleAction": {
+                                    "direction": "Increase",
+                                    "type": "ChangeCount",
+                                    "value": "[parameters('as_changeCountScaleOut')]",
+                                    "cooldown": "PT1M"
+                                }
+                            },
+                            {
+                                "metricTrigger": {
+                                    "metricName": "CpuPercentage",
+                                    "metricResourceUri": "[variables('servicePlanId')]",
+                                    "timeGrain": "PT1M",
+                                    "statistic": "Average",
+                                    "timeWindow": "PT5M",
+                                    "timeAggregation": "Average",
+                                    "operator": "LessThan",
+                                    "threshold": "[parameters('as_metricThresholdToScaleIn')]"
+                                },
+                                "scaleAction": {
+                                    "direction": "Decrease",
+                                    "type": "ChangeCount",
+                                    "value": "[parameters('as_changeCountScaleIn')]",
+                                    "cooldown": "PT1M"
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces",
+            "apiVersion": "2021-12-01-preview",
+            "name": "[parameters('log_name')]",
+            "location": "[parameters('location')]",
+            "tags": "[parameters('tags')]",
+            "properties": {
+                "sku": {
+                    "name": "[parameters('log_sku')]"
+                }
+            }
+        },
+        {
+            "type": "microsoft.insights/components",
+            "apiVersion": "2020-02-02-preview",
+            "name": "[parameters('ai_name')]",
+            "location": "[parameters('location')]",
+            "kind": "web",
+            "tags": "[parameters('tags')]",
+            "dependsOn": [
+                "[variables('logAnalyticsWorkspaceId')]"
+            ],
+            "properties": {
+                "ApplicationId": "[parameters('ai_name')]",
+                "Application_Type": "[parameters('ai_type')]",
+                "Flow_Type": "Bluefield",
+                "Request_Source": "rest",
+                "WorkspaceResourceId": "[variables('logAnalyticsWorkspaceId')]"
+            }
+        },
+        {
+            "type": "Microsoft.Web/sites",
+            "apiVersion": "2021-03-01",
+            "name": "[parameters('app_name')]",
+            "location": "[parameters('location')]",
+            "kind": "app,linux,container",
+            "tags": "[parameters('tags')]",
+            "dependsOn": [
+                "[variables('servicePlanId')]",
+                "[variables('appInsightsId')]"
+            ],
+            "properties": {
+                "enabled": true,
+                "reserved": true,
+                "serverFarmId": "[variables('servicePlanId')]",
+                "siteConfig": {
+                    "appSettings": [
+                        {
+                            "name": "DOCKER_REGISTRY_SERVER_URL",
+                            "value": "[parameters('app_dockerRegistryUrl')]",
+                            "slotSetting": true
+                        },
+                        {
+                            "name": "DOCKER_REGISTRY_SERVER_USERNAME",
+                            "value": "[parameters('app_dockerRegistryUsername')]",
+                            "slotSetting": true
+                        },
+                        {
+                            "name": "DOCKER_REGISTRY_SERVER_PASSWORD",
+                            "value": "[parameters('app_dockerRegistryPassword')]",
+                            "slotSetting": true
+                        },
+                        {
+                            "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
+                            "value": "[reference(concat('microsoft.insights/components/', parameters('ai_name')), '2015-05-01').InstrumentationKey]",
+                            "slotSetting": true
+                        },
+                        {
+                            "name": "APPLICATIONINSIGHTS_CONNECTION_STRING",
+                            "value": "[reference(concat('microsoft.insights/components/', parameters('ai_name')), '2015-05-01').ConnectionString]",
+                            "slotSetting": true
+                        },
+                        {
+                            "name": "ApplicationInsightsAgent_EXTENSION_VERSION",
+                            "value": "~3",
+                            "slotSetting": true
+                        },
+                        {
+                            "name": "XDT_MicrosoftApplicationInsights_Mode",
+                            "value": "Recommended",
+                            "slotSetting": true
+                        },
+                        {
+                            "name": "WEBSITES_ENABLE_APP_SERVICE_STORAGE",
+                            "value": "false",
+                            "slotSetting": true
+                        }
+                    ],
+                    "linuxFxVersion": "[parameters('app_linuxFxVersion')]",
+                    "appCommandLine": "[parameters('app_dockerRegistryStartupCommand')]",
+                    "alwaysOn": "[parameters('app_alwaysOn')]",
+                    "ftpsState": "[parameters('app_ftpsState')]"
+                },
+                "clientAffinityEnabled": false,
+                "httpsOnly": false,
+                "redundancyMode": "None",
+                "storageAccountRequired": false,
+                "keyVaultReferenceIdentity": "SystemAssigned"
+            }
+        },
+        {
+            "type": "Microsoft.Web/sites/slots",
+            "apiVersion": "2021-03-01",
+            "name": "[concat(parameters('app_name'), '/staging')]",
+            "location": "[parameters('location')]",
+            "kind": "app,linux,container",
+            "tags": "[parameters('tags')]",
+            "dependsOn": [
+                "[variables('servicePlanId')]",
+                "[variables('webAppId')]"
+            ],
+            "properties": {
+                "enabled": true,
+                "reserved": true,
+                "serverFarmId": "[variables('servicePlanId')]",
+                "siteConfig": {
+                    "appSettings": [
+                        {
+                            "name": "DOCKER_REGISTRY_SERVER_URL",
+                            "value": "[parameters('app_dockerRegistryUrl')]",
+                            "slotSetting": true
+                        },
+                        {
+                            "name": "DOCKER_REGISTRY_SERVER_USERNAME",
+                            "value": "[parameters('app_dockerRegistryUsername')]",
+                            "slotSetting": true
+                        },
+                        {
+                            "name": "DOCKER_REGISTRY_SERVER_PASSWORD",
+                            "value": "[parameters('app_dockerRegistryPassword')]",
+                            "slotSetting": true
+                        },
+                        {
+                            "name": "WEBSITES_ENABLE_APP_SERVICE_STORAGE",
+                            "value": "false",
+                            "slotSetting": true
+                        }
+                    ],
+                    "linuxFxVersion": "[parameters('app_linuxFxVersion')]",
+                    "appCommandLine": "[parameters('app_dockerRegistryStartupCommand')]",
+                    "alwaysOn": "[parameters('app_alwaysOn')]",
+                    "ftpsState": "[parameters('app_ftpsState')]"
+                },
+                "clientAffinityEnabled": false,
+                "httpsOnly": false,
+                "redundancyMode": "None",
+                "storageAccountRequired": false,
+                "keyVaultReferenceIdentity": "SystemAssigned"
+            }
+        }
+    ]
+}
