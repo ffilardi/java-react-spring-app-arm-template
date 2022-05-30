@@ -26,7 +26,7 @@ jobs:
       with:
         resourceGroupName: ${{ env.ResourceGroupName }}
         template: ./azuredeploy.json
-        parameters: ./azuredeploy.parameters.json app_dockerRegistryUsername=${{ secrets.GIT_USERNAME }} app_dockerRegistryPassword=${{ secrets.GIT_PAT }}
+        parameters: ./azuredeploy.parameters.json location=${{ env.ResourceGroupLocation }} app_dockerRegistryUsername=${{ secrets.GIT_USERNAME }} app_dockerRegistryPassword=${{ secrets.GIT_PAT }}
     - uses: Azure/CLI@v1
       with:
         inlineScript: |
