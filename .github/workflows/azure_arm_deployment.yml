@@ -8,6 +8,7 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     env:
+      WebAppName: DevOpsJavaApp
       ResourceGroupName: DevOpsJavaApp-RG
       ResourceGroupLocation: "australiaeast"
     steps:
@@ -25,4 +26,10 @@ jobs:
       with:
         resourceGroupName: ${{ env.ResourceGroupName }}
         template: ./azuredeploy.json
-        parameters: ./azuredeploy.parameters.json location=${{ env.ResourceGroupLocation }} app_dockerRegistryUsername=${{ secrets.GIT_USERNAME }} app_dockerRegistryPassword=${{ secrets.GIT_PAT }}
+        parameters: ./azuredeploy.parameters.json app_dockerRegistryUsername=${{ secrets.GIT_USERNAME }} app_dockerRegistryPassword=${{ secrets.GIT_PAT }}
+    - uses: Azure/CLI@v1
+      with:
+        inlineScript: |
+          #!/bin/bash
+          echo "Web app (staging slot) publish profile:"
+          az webapp deployment list-publishing-profiles --name ${{ env.WebAppName }} --resource-group ${{ env.ResourceGroupName }} --slot staging --xml
